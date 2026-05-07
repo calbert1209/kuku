@@ -217,7 +217,7 @@ export function App() {
       <div className="display-text" style={{ fontSize: '2rem', textAlign: 'center' }}>
         KUKU TIME ATTACK
       </div>
-      <button className="key" onClick={() => setGameState('SELECT_MODE')} style={{ width: '80%', padding: '15px' }}>
+      <button className="lcd-button" onClick={() => setGameState('SELECT_MODE')} style={{ width: '80%' }}>
         START
       </button>
     </div>
@@ -229,20 +229,22 @@ export function App() {
       
       <div className="mode-toggle">
         <button 
-          className={`toggle-btn ${playMode === 'SHUFFLE' ? 'active' : ''}`}
+          className={`lcd-button lcd-button-small ${playMode === 'SHUFFLE' ? '' : 'display-text'}`}
+          style={{ backgroundColor: playMode === 'SHUFFLE' ? 'var(--lcd-text)' : 'transparent', color: playMode === 'SHUFFLE' ? 'var(--lcd-bg)' : 'var(--lcd-text)' }}
           onClick={() => setPlayMode('SHUFFLE')}
         >
           SHUFFLE
         </button>
         <button 
-          className={`toggle-btn ${playMode === 'SEQUENTIAL' ? 'active' : ''}`}
+          className={`lcd-button lcd-button-small ${playMode === 'SEQUENTIAL' ? '' : 'display-text'}`}
+          style={{ backgroundColor: playMode === 'SEQUENTIAL' ? 'var(--lcd-text)' : 'transparent', color: playMode === 'SEQUENTIAL' ? 'var(--lcd-bg)' : 'var(--lcd-text)' }}
           onClick={() => setPlayMode('SEQUENTIAL')}
         >
           IN ORDER
         </button>
       </div>
 
-      <button className="key" onClick={() => startGame()} style={{ width: '90%', padding: '10px' }}>
+      <button className="lcd-button" onClick={() => startGame()} style={{ width: '90%' }}>
         MIXED (1-9)
       </button>
 
@@ -250,7 +252,7 @@ export function App() {
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(dan => (
           <button 
             key={dan} 
-            className="key key-small" 
+            className="lcd-button lcd-button-small" 
             onClick={() => startGame(dan)}
           >
             {dan}
@@ -303,14 +305,14 @@ export function App() {
         Mistakes: {mistakes.length}
       </div>
       <div style={{ width: '80%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <button className="key" onClick={() => setGameState('SELECT_MODE')} style={{ padding: '10px' }}>
+        <button className="lcd-button" onClick={() => setGameState('SELECT_MODE')}>
           NEW GAME
         </button>
         {mistakes.length > 0 && (
           <button 
-            className="key" 
+            className="lcd-button" 
             onClick={startReview}
-            style={{ padding: '10px', backgroundColor: '#fff59d', color: '#f57f17' }}
+            style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}
           >
             REVIEW ({new Set(mistakes.map(p => p.id)).size})
           </button>
@@ -321,7 +323,7 @@ export function App() {
 
   const renderReview = () => (
     <div className={`screen ${flashClass}`}>
-      <div className="display-text" style={{ fontSize: '1.2rem', color: '#f57f17' }}>
+      <div className="display-text" style={{ fontSize: '1.2rem', color: 'var(--lcd-text)' }}>
         NIGATE RETRY ({reviewQueue.length} left)
       </div>
       
@@ -330,7 +332,6 @@ export function App() {
           className="progress-bar" 
           style={{ 
             width: `${(currentProblem as ReviewProblem).consecutiveCorrect * 50}%`,
-            backgroundColor: '#fbc02d'
           }}
         ></div>
       </div>
