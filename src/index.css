@@ -167,7 +167,37 @@ body {
   transition: width 0.3s ease;
 }
 
-.timer-text {
+.dan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.key-small {
+  padding: 10px 0;
   font-size: 1.2rem;
-  margin-top: 5px;
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 8px;
+  font-size: 0.8rem;
+  background-color: var(--btn-color);
+  border: 2px solid var(--chassis-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.toggle-btn.active {
+  background-color: var(--chassis-shadow);
+  color: white;
 }

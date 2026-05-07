@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
-import { type Problem, generateKuku, shuffleProblems } from './logic/kuku';
+import { type Problem, generateKuku, shuffleProblems, getDanProblems } from './logic/kuku';
 import './index.css';
 
-type GameState = 'IDLE' | 'PLAYING' | 'RESULT' | 'REVIEW';
+type GameState = 'IDLE' | 'SELECT_MODE' | 'PLAYING' | 'RESULT' | 'REVIEW';
+type PlayMode = 'SHUFFLE' | 'SEQUENTIAL';
 
 interface ReviewProblem extends Problem {
   consecutiveCorrect: number;
@@ -12,6 +13,7 @@ const GAME_DURATION = 60;
 
 export function App() {
   const [gameState, setGameState] = useState<GameState>('IDLE');
+  const [playMode, setPlayMode] = useState<PlayMode>('SHUFFLE');
   const [problems, setProblems] = useState<Problem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentInput, setCurrentInput] = useState('');
@@ -25,9 +27,13 @@ export function App() {
 
   const currentProblem = gameState === 'REVIEW' ? reviewQueue[currentIndex] : problems[currentIndex];
 
-  const startGame = () => {
-    const newProblems = shuffleProblems(generateKuku());
-    setProblems(newProblems);
+  const startGame = (dan?: number) => {
+    let baseProblems = dan ? getDanProblems(dan) : generateKuku();
+    if (playMode === 'SHUFFLE') {
+      baseProblems = shuffleProblems(baseProblems);
+    }
+    
+    setProblems(baseProblems);
     setCurrentIndex(0);
     setCurrentInput('');
     setTimeLeft(GAME_DURATION);
@@ -196,9 +202,9 @@ export function App() {
         } else if (e.key === 'Backspace' || e.key === 'Escape') {
           handleClear();
         }
-      } else if (gameState === 'IDLE' || gameState === 'RESULT') {
+      } else if (gameState === 'IDLE') {
         if (e.key === 'Enter' || e.key === ' ') {
-          startGame();
+          setGameState('SELECT_MODE');
         }
       }
     };
@@ -211,8 +217,53 @@ export function App() {
       <div className="display-text" style={{ fontSize: '2rem', textAlign: 'center' }}>
         KUKU TIME ATTACK
       </div>
-      <button className="key" onClick={startGame} style={{ width: '80%', padding: '15px' }}>
-        START (60s)
+      <button className="key" onClick={() => setGameState('SELECT_MODE')} style={{ width: '80%', padding: '15px' }}>
+        START
+      </button>
+    </div>
+  );
+
+  const renderSelectMode = () => (
+    <div className="screen">
+      <div className="display-text" style={{ fontSize: '1.2rem' }}>SELECT MODE</div>
+      
+      <div className="mode-toggle">
+        <button 
+          className={`toggle-btn ${playMode === 'SHUFFLE' ? 'active' : ''}`}
+          onClick={() => setPlayMode('SHUFFLE')}
+        >
+          SHUFFLE
+        </button>
+        <button 
+          className={`toggle-btn ${playMode === 'SEQUENTIAL' ? 'active' : ''}`}
+          onClick={() => setPlayMode('SEQUENTIAL')}
+        >
+          IN ORDER
+        </button>
+      </div>
+
+      <button className="key" onClick={() => startGame()} style={{ width: '90%', padding: '10px' }}>
+        MIXED (1-9)
+      </button>
+
+      <div className="dan-grid">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(dan => (
+          <button 
+            key={dan} 
+            className="key key-small" 
+            onClick={() => startGame(dan)}
+          >
+            {dan}
+          </button>
+        ))}
+      </div>
+      
+      <button 
+        className="display-text" 
+        style={{ fontSize: '0.8rem', background: 'none', border: 'none', cursor: 'pointer' }}
+        onClick={() => setGameState('IDLE')}
+      >
+        [ BACK ]
       </button>
     </div>
   );
@@ -252,8 +303,8 @@ export function App() {
         Mistakes: {mistakes.length}
       </div>
       <div style={{ width: '80%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <button className="key" onClick={startGame} style={{ padding: '10px' }}>
-          TRY AGAIN
+        <button className="key" onClick={() => setGameState('SELECT_MODE')} style={{ padding: '10px' }}>
+          NEW GAME
         </button>
         {mistakes.length > 0 && (
           <button 
@@ -307,6 +358,7 @@ export function App() {
   return (
     <div className="device-container">
       {gameState === 'IDLE' && renderIdle()}
+      {gameState === 'SELECT_MODE' && renderSelectMode()}
       {gameState === 'PLAYING' && renderPlaying()}
       {gameState === 'RESULT' && renderResult()}
       {gameState === 'REVIEW' && renderReview()}
