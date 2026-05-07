@@ -215,38 +215,34 @@ export function App() {
   const renderIdle = () => (
     <div className="screen">
       <div className="display-text" style={{ fontSize: '2rem', textAlign: 'center' }}>
-        KUKU TIME ATTACK
+        くく<br/>タイムアタック
       </div>
       <button className="lcd-button" onClick={() => setGameState('SELECT_MODE')} style={{ width: '80%' }}>
-        START
+        スタート
       </button>
     </div>
   );
 
   const renderSelectMode = () => (
     <div className="screen">
-      <div className="display-text" style={{ fontSize: '1.2rem' }}>SELECT MODE</div>
+      <div className="display-text" style={{ fontSize: '1.2rem' }}>えらんでね</div>
       
       <div className="mode-toggle">
-        <button 
-          className={`lcd-button lcd-button-small ${playMode === 'SHUFFLE' ? '' : 'display-text'}`}
-          style={{ backgroundColor: playMode === 'SHUFFLE' ? 'var(--lcd-text)' : 'transparent', color: playMode === 'SHUFFLE' ? 'var(--lcd-bg)' : 'var(--lcd-text)' }}
-          onClick={() => setPlayMode('SHUFFLE')}
-        >
-          SHUFFLE
-        </button>
         <button 
           className={`lcd-button lcd-button-small ${playMode === 'SEQUENTIAL' ? '' : 'display-text'}`}
           style={{ backgroundColor: playMode === 'SEQUENTIAL' ? 'var(--lcd-text)' : 'transparent', color: playMode === 'SEQUENTIAL' ? 'var(--lcd-bg)' : 'var(--lcd-text)' }}
           onClick={() => setPlayMode('SEQUENTIAL')}
         >
-          IN ORDER
+          じゅんばん
+        </button>
+        <button 
+          className={`lcd-button lcd-button-small ${playMode === 'SHUFFLE' ? '' : 'display-text'}`}
+          style={{ backgroundColor: playMode === 'SHUFFLE' ? 'var(--lcd-text)' : 'transparent', color: playMode === 'SHUFFLE' ? 'var(--lcd-bg)' : 'var(--lcd-text)' }}
+          onClick={() => setPlayMode('SHUFFLE')}
+        >
+          バラバラ
         </button>
       </div>
-
-      <button className="lcd-button" onClick={() => startGame()} style={{ width: '90%' }}>
-        MIXED (1-9)
-      </button>
 
       <div className="dan-grid">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(dan => (
@@ -255,17 +251,21 @@ export function App() {
             className="lcd-button lcd-button-small" 
             onClick={() => startGame(dan)}
           >
-            {dan}
+            {dan}だん
           </button>
         ))}
       </div>
+
+      <button className="lcd-button lcd-button-small" onClick={() => startGame()} style={{ width: '90%' }}>
+        ぜんぶまぜる
+      </button>
       
       <button 
         className="display-text" 
         style={{ fontSize: '0.8rem', background: 'none', border: 'none', cursor: 'pointer' }}
         onClick={() => setGameState('IDLE')}
       >
-        [ BACK ]
+        [ もどる ]
       </button>
     </div>
   );
@@ -292,21 +292,21 @@ export function App() {
       </div>
 
       <div className="display-text" style={{ fontSize: '1rem' }}>
-        Score: {score.correct}
+        せいかい: {score.correct}
       </div>
     </div>
   );
 
   const renderResult = () => (
     <div className="screen">
-      <div className="display-text" style={{ fontSize: '2rem' }}>FINISH!</div>
-      <div className="display-text" style={{ fontSize: '1.5rem', textAlign: 'center' }}>
-        Correct: {score.correct}<br />
-        Mistakes: {mistakes.length}
+      <div className="display-text" style={{ fontSize: '2rem' }}>おわり！</div>
+      <div className="display-text" style={{ fontSize: '1.2rem', textAlign: 'center' }}>
+        せいかい: {score.correct}<br />
+        まちがい: {mistakes.length}
       </div>
       <div style={{ width: '80%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <button className="lcd-button" onClick={() => setGameState('SELECT_MODE')}>
-          NEW GAME
+          もういっかい
         </button>
         {mistakes.length > 0 && (
           <button 
@@ -314,7 +314,7 @@ export function App() {
             onClick={startReview}
             style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}
           >
-            REVIEW ({new Set(mistakes.map(p => p.id)).size})
+            ふくしゅう ({new Set(mistakes.map(p => p.id)).size})
           </button>
         )}
       </div>
@@ -324,7 +324,7 @@ export function App() {
   const renderReview = () => (
     <div className={`screen ${flashClass}`}>
       <div className="display-text" style={{ fontSize: '1.2rem', color: 'var(--lcd-text)' }}>
-        NIGATE RETRY ({reviewQueue.length} left)
+        にがてリトライ ({reviewQueue.length}のこり)
       </div>
       
       <div className="progress-container">
@@ -349,7 +349,7 @@ export function App() {
         style={{ fontSize: '0.8rem', background: 'none', border: 'none', cursor: 'pointer' }}
         onClick={() => setGameState('RESULT')}
       >
-        [ QUIT REVIEW ]
+        [ ふくしゅうを おわる ]
       </button>
     </div>
   );
