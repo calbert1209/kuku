@@ -24,8 +24,16 @@ export function App() {
   const [flashClass, setFlashClass] = useState('');
   
   const timerRef = useRef<number | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   const currentProblem = gameState === 'REVIEW' ? reviewQueue[currentIndex] : problems[currentIndex];
+
+  const getAudioContext = () => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    return audioCtxRef.current;
+  };
 
   const startGame = (dan?: number) => {
     let baseProblems = dan ? getDanProblems(dan) : generateKuku();
@@ -76,7 +84,11 @@ export function App() {
   }, [gameState]);
 
   const playSound = (type: 'correct' | 'wrong' | 'click') => {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+    
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
