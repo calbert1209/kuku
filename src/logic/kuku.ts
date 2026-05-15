@@ -47,3 +47,10 @@ export const getDanProblems = (dan: number): Problem[] => {
   }
   return problems;
 };
+
+/**
+ * Reverses the order of problems.
+ */
+export const reverseProblems = (problems: Problem[]): Problem[] => {
+  return [...problems].reverse();
+};

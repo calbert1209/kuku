@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
-import { type Problem, generateKuku, shuffleProblems, getDanProblems } from './logic/kuku';
+import { type Problem, generateKuku, shuffleProblems, getDanProblems, reverseProblems } from './logic/kuku';
 import './index.css';
 
 type GameState = 'SELECT_MODE' | 'PLAYING' | 'RESULT' | 'REVIEW';
-type PlayMode = 'SHUFFLE' | 'SEQUENTIAL';
+type PlayMode = 'SHUFFLE' | 'SEQUENTIAL' | 'REVERSE';
 
 interface ReviewProblem extends Problem {
   consecutiveCorrect: number;
@@ -39,6 +39,8 @@ export function App() {
     let baseProblems = dan ? getDanProblems(dan) : generateKuku();
     if (playMode === 'SHUFFLE') {
       baseProblems = shuffleProblems(baseProblems);
+    } else if (playMode === 'REVERSE') {
+      baseProblems = reverseProblems(baseProblems);
     }
     
     setProblems(baseProblems);
@@ -230,6 +232,13 @@ export function App() {
           onClick={() => setPlayMode('SEQUENTIAL')}
         >
           じゅんばん
+        </button>
+        <button 
+          className={`lcd-button lcd-button-small ${playMode === 'REVERSE' ? '' : 'display-text'}`}
+          style={{ backgroundColor: playMode === 'REVERSE' ? 'var(--lcd-text)' : 'transparent', color: playMode === 'REVERSE' ? 'var(--lcd-bg)' : 'var(--lcd-text)' }}
+          onClick={() => setPlayMode('REVERSE')}
+        >
+          ぎゃく
         </button>
         <button 
           className={`lcd-button lcd-button-small ${playMode === 'SHUFFLE' ? '' : 'display-text'}`}
