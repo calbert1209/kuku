@@ -25,6 +25,7 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  min-height: 100svh;
   overflow: hidden; /* Prevent scrolling on mobile */
 }
 
@@ -38,6 +39,7 @@ body {
   width: 100%;
   max-width: 420px; /* Mimics handheld width on desktop */
   height: 100vh;
+  height: 100svh;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -109,7 +111,7 @@ body {
   background-color: var(--btn-color);
   border: none;
   border-radius: 12px;
-  padding: 10px 0;
+  padding: 6px 0;
   font-size: 1.5rem;
   font-weight: bold;
   color: var(--btn-text);

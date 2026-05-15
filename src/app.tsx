@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'preact/hooks';
 import { type Problem, generateKuku, shuffleProblems, getDanProblems } from './logic/kuku';
 import './index.css';
 
-type GameState = 'IDLE' | 'SELECT_MODE' | 'PLAYING' | 'RESULT' | 'REVIEW';
+type GameState = 'SELECT_MODE' | 'PLAYING' | 'RESULT' | 'REVIEW';
 type PlayMode = 'SHUFFLE' | 'SEQUENTIAL';
 
 interface ReviewProblem extends Problem {
@@ -12,7 +12,7 @@ interface ReviewProblem extends Problem {
 const GAME_DURATION = 60;
 
 export function App() {
-  const [gameState, setGameState] = useState<GameState>('IDLE');
+  const [gameState, setGameState] = useState<GameState>('SELECT_MODE');
   const [playMode, setPlayMode] = useState<PlayMode>('SHUFFLE');
   const [problems, setProblems] = useState<Problem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -202,30 +202,14 @@ export function App() {
         } else if (e.key === 'Backspace' || e.key === 'Escape') {
           handleClear();
         }
-      } else if (gameState === 'IDLE') {
-        if (e.key === 'Enter' || e.key === ' ') {
-          setGameState('SELECT_MODE');
-        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [gameState, currentInput, currentProblem]);
 
-  const renderIdle = () => (
-    <div className="screen">
-      <div className="display-text" style={{ fontSize: '2rem', textAlign: 'center' }}>
-        くく<br/>タイムアタック
-      </div>
-      <button className="lcd-button" onClick={() => setGameState('SELECT_MODE')} style={{ width: '80%' }}>
-        スタート
-      </button>
-    </div>
-  );
-
   const renderSelectMode = () => (
     <div className="screen">
-      <div className="display-text" style={{ fontSize: '1.2rem' }}>えらんでね</div>
       
       <div className="mode-toggle">
         <button 
@@ -258,14 +242,6 @@ export function App() {
 
       <button className="lcd-button lcd-button-small" onClick={() => startGame()} style={{ width: '90%' }}>
         ぜんぶまぜる
-      </button>
-      
-      <button 
-        className="display-text" 
-        style={{ fontSize: '0.8rem', background: 'none', border: 'none', cursor: 'pointer' }}
-        onClick={() => setGameState('IDLE')}
-      >
-        [ もどる ]
       </button>
     </div>
   );
@@ -358,7 +334,6 @@ export function App() {
 
   return (
     <div className="device-container">
-      {gameState === 'IDLE' && renderIdle()}
       {gameState === 'SELECT_MODE' && renderSelectMode()}
       {gameState === 'PLAYING' && renderPlaying()}
       {gameState === 'RESULT' && renderResult()}
