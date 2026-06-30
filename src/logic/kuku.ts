@@ -54,3 +54,21 @@ export const getDanProblems = (dan: number): Problem[] => {
 export const reverseProblems = (problems: Problem[]): Problem[] => {
   return [...problems].reverse();
 };
+
+/**
+ * Generates addition problems for numbers 5 to 10 inclusive.
+ */
+export const generateAddition = (): Problem[] => {
+  const problems: Problem[] = [];
+  for (let i = 5; i <= 10; i++) {
+    for (let j = 5; j <= 10; j++) {
+      problems.push({
+        id: `add-${i}-${j}`,
+        q: `${i} + ${j}`,
+        a: i + j,
+      });
+    }
+  }
+  return problems;
+};
+

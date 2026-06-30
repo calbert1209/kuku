@@ -18,6 +18,23 @@
   --btn-text: #5e35b1;
 }
 
+/* B-Side (Atomic Orange / Cyberpunk theme overrides) */
+.device-container.b-side {
+  --chassis-color: #ff7043; /* Cyber Neon Orange */
+  --chassis-border: #f4511e;
+  --chassis-shadow: #bf360c;
+
+  --lcd-bg: #221204; /* Dark dark amber */
+  --lcd-text: #ff9100; /* Neon Orange LCD text */
+  --lcd-glow: rgba(255, 61, 0, 0.3);
+
+  --btn-color: #ffe0b2;
+  --btn-text: #e65100;
+
+  --correct-flash: rgba(255, 145, 0, 0.4);
+  --wrong-flash: rgba(216, 67, 21, 0.4);
+}
+
 body {
   margin: 0;
   background-color: #333;
@@ -52,6 +69,7 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   user-select: none;
   touch-action: manipulation;
+  transition: background-color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
 }
 
 @media (min-height: 800px) {
@@ -74,6 +92,7 @@ body {
   justify-content: space-around;
   position: relative;
   overflow: hidden;
+  transition: background-color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
 }
 
 /* Retro Font - using a system-available monospaced font as fallback */
@@ -82,6 +101,7 @@ body {
   font-weight: bold;
   color: var(--lcd-text);
   text-shadow: 1px 1px 0px var(--lcd-glow);
+  transition: color 0.5s ease, text-shadow 0.5s ease;
 }
 
 .math-problem {
@@ -116,7 +136,7 @@ body {
   font-weight: bold;
   color: var(--btn-text);
   box-shadow: 0 5px 0 var(--chassis-shadow);
-  transition: transform 0.05s, box-shadow 0.05s;
+  transition: transform 0.05s, box-shadow 0.05s, background-color 0.5s ease, color 0.5s ease;
   cursor: pointer;
   display: flex;
   justify-content: center;
@@ -187,7 +207,7 @@ body {
   padding: 10px;
   cursor: pointer;
   box-shadow: 2px 2px 0px var(--lcd-glow);
-  transition: all 0.05s;
+  transition: all 0.05s, border-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -226,3 +246,64 @@ body {
   background-color: var(--chassis-shadow);
   color: white;
 }
+
+/* Long press charging overlay */
+.hold-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(158, 167, 141, 0.9); /* Greenish LCD transparent background */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+  padding: 20px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.device-container.b-side .hold-overlay {
+  background-color: rgba(34, 18, 4, 0.95); /* Amber dark LCD background */
+}
+
+.hold-bar-container {
+  width: 80%;
+  height: 16px;
+  border: 3px solid var(--lcd-text);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 15px;
+  background: transparent;
+  box-shadow: 0 0 5px var(--lcd-glow);
+}
+
+.hold-bar {
+  height: 100%;
+  background-color: var(--lcd-text);
+  box-shadow: 0 0 8px var(--lcd-glow);
+}
+
+/* B-Side specific flashing */
+.device-container.b-side .flash-correct {
+  animation: flash-orange 0.3s forwards;
+}
+
+.device-container.b-side .flash-wrong {
+  animation: flash-neon-red 0.3s forwards;
+}
+
+@keyframes flash-orange {
+  0% { background-color: var(--lcd-bg); }
+  50% { background-color: #ff9100; }
+  100% { background-color: var(--lcd-bg); }
+}
+
+@keyframes flash-neon-red {
+  0% { background-color: var(--lcd-bg); }
+  50% { background-color: #ff3d00; }
+  100% { background-color: var(--lcd-bg); }
+}
+

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
-import { type Problem, generateKuku, shuffleProblems, getDanProblems, reverseProblems } from './logic/kuku';
+import { type Problem, generateKuku, shuffleProblems, getDanProblems, reverseProblems, generateAddition } from './logic/kuku';
 import './index.css';
 
 type GameState = 'SELECT_MODE' | 'PLAYING' | 'RESULT' | 'REVIEW';
@@ -23,8 +23,13 @@ export function App() {
   const [reviewQueue, setReviewQueue] = useState<ReviewProblem[]>([]);
   const [flashClass, setFlashClass] = useState('');
   
+  // B-Side Hidden Mode States
+  const [isBSide, setIsBSide] = useState(false);
+  const [holdProgress, setHoldProgress] = useState<number | null>(null);
+  
   const timerRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const holdIntervalRef = useRef<number | null>(null);
 
   const currentProblem = gameState === 'REVIEW' ? reviewQueue[currentIndex] : problems[currentIndex];
 
@@ -35,9 +40,150 @@ export function App() {
     return audioCtxRef.current;
   };
 
+  const playSound = (type: 'correct' | 'wrong' | 'click') => {
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+    
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === 'correct') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.1);
+    } else if (type === 'wrong') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+    } else if (type === 'click') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      gain.gain.setValueAtTime(0.05, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.05);
+    }
+  };
+
+  // Sound play during holding (rising pitch hum)
+  const playHoldSound = (progress: number) => {
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.type = 'sine';
+    const freq = 220 + (progress / 100) * 440; // Rises from 220Hz to 660Hz
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    
+    gain.gain.setValueAtTime(0.03, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 0.08);
+  };
+
+  // Sound play when toggle completes (Cyber/Friendly Chime)
+  const playToggleSound = (toBSide: boolean) => {
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+    const now = ctx.currentTime;
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(ctx.destination);
+    
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    
+    if (toBSide) {
+      osc1.type = 'square';
+      osc1.frequency.setValueAtTime(440, now);
+      osc1.frequency.setValueAtTime(554.37, now + 0.1);
+      osc1.frequency.setValueAtTime(659.25, now + 0.2);
+      osc1.frequency.setValueAtTime(880, now + 0.3);
+      osc1.start(now);
+      osc1.stop(now + 0.5);
+    } else {
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(880, now);
+      osc1.frequency.setValueAtTime(659.25, now + 0.15);
+      osc1.frequency.setValueAtTime(440, now + 0.3);
+      osc1.start(now);
+      osc1.stop(now + 0.5);
+    }
+  };
+
+  const toggleBSide = () => {
+    setIsBSide(prev => {
+      const next = !prev;
+      playToggleSound(next);
+      setGameState('SELECT_MODE');
+      setProblems([]);
+      setCurrentIndex(0);
+      setCurrentInput('');
+      setScore({ correct: 0, wrong: 0 });
+      setMistakes([]);
+      setReviewQueue([]);
+      return next;
+    });
+  };
+
+  const startHold = () => {
+    if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
+    setHoldProgress(0);
+    let progress = 0;
+    
+    playHoldSound(0);
+    
+    holdIntervalRef.current = window.setInterval(() => {
+      progress += 3.33; // 100ms * 30 ticks = 3000ms
+      if (progress >= 100) {
+        clearInterval(holdIntervalRef.current!);
+        holdIntervalRef.current = null;
+        setHoldProgress(null);
+        toggleBSide();
+      } else {
+        setHoldProgress(Math.min(100, progress));
+        playHoldSound(progress);
+      }
+    }, 100);
+  };
+
+  const cancelHold = () => {
+    if (holdIntervalRef.current) {
+      clearInterval(holdIntervalRef.current);
+      holdIntervalRef.current = null;
+      setHoldProgress(null);
+      handleClear();
+    }
+  };
+
   const startGame = (dan?: number) => {
-    let baseProblems = dan ? getDanProblems(dan) : generateKuku();
-    if (playMode === 'SHUFFLE') {
+    let baseProblems = isBSide ? generateAddition() : (dan ? getDanProblems(dan) : generateKuku());
+    if (isBSide || playMode === 'SHUFFLE') {
       baseProblems = shuffleProblems(baseProblems);
     } else if (playMode === 'REVERSE') {
       baseProblems = reverseProblems(baseProblems);
@@ -85,43 +231,11 @@ export function App() {
     };
   }, [gameState]);
 
-  const playSound = (type: 'correct' | 'wrong' | 'click') => {
-    const ctx = getAudioContext();
-    if (ctx.state === 'suspended') {
-      ctx.resume();
-    }
-    
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    if (type === 'correct') {
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.1);
-    } else if (type === 'wrong') {
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(220, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.2);
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.2);
-    } else if (type === 'click') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(440, ctx.currentTime);
-      gain.gain.setValueAtTime(0.05, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.05);
-    }
-  };
+  useEffect(() => {
+    return () => {
+      if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
+    };
+  }, []);
 
   const checkAnswer = (input: string) => {
     if (!currentProblem) return;
@@ -208,67 +322,124 @@ export function App() {
     setCurrentInput('');
   };
 
+  // Keyboard long-press and event listeners
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (gameState === 'PLAYING' || gameState === 'REVIEW') {
+      if (e.key === 'Backspace' || e.key === 'Escape') {
+        if (!e.repeat) {
+          startHold();
+        }
+        e.preventDefault();
+      } else if (gameState === 'PLAYING' || gameState === 'REVIEW') {
         if (e.key >= '0' && e.key <= '9') {
           handleInput(e.key);
-        } else if (e.key === 'Backspace' || e.key === 'Escape') {
-          handleClear();
         }
       }
     };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Backspace' || e.key === 'Escape') {
+        cancelHold();
+        e.preventDefault();
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameState, currentInput, currentProblem]);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [gameState, currentInput, currentProblem, isBSide]);
 
-  const renderSelectMode = () => (
-    <div className="screen">
-      
-      <div className="mode-toggle">
-        <button 
-          className={`lcd-button lcd-button-small ${playMode === 'SEQUENTIAL' ? '' : 'display-text'}`}
-          style={{ backgroundColor: playMode === 'SEQUENTIAL' ? 'var(--lcd-text)' : 'transparent', color: playMode === 'SEQUENTIAL' ? 'var(--lcd-bg)' : 'var(--lcd-text)' }}
-          onClick={() => setPlayMode('SEQUENTIAL')}
-        >
-          じゅんばん
-        </button>
-        <button 
-          className={`lcd-button lcd-button-small ${playMode === 'REVERSE' ? '' : 'display-text'}`}
-          style={{ backgroundColor: playMode === 'REVERSE' ? 'var(--lcd-text)' : 'transparent', color: playMode === 'REVERSE' ? 'var(--lcd-bg)' : 'var(--lcd-text)' }}
-          onClick={() => setPlayMode('REVERSE')}
-        >
-          ぎゃく
-        </button>
-        <button 
-          className={`lcd-button lcd-button-small ${playMode === 'SHUFFLE' ? '' : 'display-text'}`}
-          style={{ backgroundColor: playMode === 'SHUFFLE' ? 'var(--lcd-text)' : 'transparent', color: playMode === 'SHUFFLE' ? 'var(--lcd-bg)' : 'var(--lcd-text)' }}
-          onClick={() => setPlayMode('SHUFFLE')}
-        >
-          バラバラ
-        </button>
-      </div>
-
-      <div className="dan-grid">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(dan => (
-          <button 
-            key={dan} 
-            className="lcd-button lcd-button-small" 
-            onClick={() => startGame(dan)}
-          >
-            {dan}だん
-          </button>
-        ))}
-      </div>
-
-      <button className="lcd-button lcd-button-small" onClick={() => startGame()} style={{ width: '90%' }}>
-        ぜんぶまぜる
-      </button>
+  // Screen wrapper helper that injects holdProgress and flashing class natively
+  const wrapScreen = (content: any, extraClass = '') => (
+    <div className={`screen ${extraClass} ${flashClass}`}>
+      {holdProgress !== null && (
+        <div className="hold-overlay">
+          <div className="display-text" style={{ fontSize: '1.2rem' }}>
+            {isBSide ? 'せいじょうモードへ' : 'たしざんモードへ'}
+          </div>
+          <div className="display-text" style={{ fontSize: '2.5rem', marginTop: '10px' }}>
+            {Math.max(1, Math.ceil(3 - (holdProgress / 100) * 3))}
+          </div>
+          <div className="hold-bar-container">
+            <div className="hold-bar" style={{ width: `${holdProgress}%` }}></div>
+          </div>
+        </div>
+      )}
+      {content}
     </div>
   );
 
-  const renderPlaying = () => (
-    <div className={`screen ${flashClass}`}>
+  const renderSelectMode = () => {
+    if (isBSide) {
+      return wrapScreen(
+        <>
+          <div className="display-text" style={{ fontSize: '1.4rem', letterSpacing: '2px' }}>
+            たしざん B-SIDE
+          </div>
+          <div className="display-text" style={{ fontSize: '0.9rem', color: 'var(--lcd-text)', opacity: 0.8 }}>
+            (5 〜 10) バラバラ
+          </div>
+          <button 
+            className="lcd-button" 
+            onClick={() => startGame()} 
+            style={{ width: '80%', padding: '15px', fontSize: '1.5rem' }}
+          >
+            スタート
+          </button>
+        </>
+      );
+    }
+
+    return wrapScreen(
+      <>
+        <div className="mode-toggle">
+          <button 
+            className={`lcd-button lcd-button-small ${playMode === 'SEQUENTIAL' ? '' : 'display-text'}`}
+            style={{ backgroundColor: playMode === 'SEQUENTIAL' ? 'var(--lcd-text)' : 'transparent', color: playMode === 'SEQUENTIAL' ? 'var(--lcd-bg)' : 'var(--lcd-text)' }}
+            onClick={() => setPlayMode('SEQUENTIAL')}
+          >
+            じゅんばん
+          </button>
+          <button 
+            className={`lcd-button lcd-button-small ${playMode === 'REVERSE' ? '' : 'display-text'}`}
+            style={{ backgroundColor: playMode === 'REVERSE' ? 'var(--lcd-text)' : 'transparent', color: playMode === 'REVERSE' ? 'var(--lcd-bg)' : 'var(--lcd-text)' }}
+            onClick={() => setPlayMode('REVERSE')}
+          >
+            ぎゃく
+          </button>
+          <button 
+            className={`lcd-button lcd-button-small ${playMode === 'SHUFFLE' ? '' : 'display-text'}`}
+            style={{ backgroundColor: playMode === 'SHUFFLE' ? 'var(--lcd-text)' : 'transparent', color: playMode === 'SHUFFLE' ? 'var(--lcd-bg)' : 'var(--lcd-text)' }}
+            onClick={() => setPlayMode('SHUFFLE')}
+          >
+            バラバラ
+          </button>
+        </div>
+
+        <div className="dan-grid">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(dan => (
+            <button 
+              key={dan} 
+              className="lcd-button lcd-button-small" 
+              onClick={() => startGame(dan)}
+            >
+              {dan}だん
+            </button>
+          ))}
+        </div>
+
+        <button className="lcd-button lcd-button-small" onClick={() => startGame()} style={{ width: '90%' }}>
+          ぜんぶまぜる
+        </button>
+      </>
+    );
+  };
+
+  const renderPlaying = () => wrapScreen(
+    <>
       <div className="progress-container">
         <div 
           className="progress-bar" 
@@ -291,11 +462,11 @@ export function App() {
       <div className="display-text" style={{ fontSize: '1rem' }}>
         せいかい: {score.correct}
       </div>
-    </div>
+    </>
   );
 
-  const renderResult = () => (
-    <div className="screen">
+  const renderResult = () => wrapScreen(
+    <>
       <div className="display-text" style={{ fontSize: '2rem' }}>おわり！</div>
       <div className="display-text" style={{ fontSize: '1.2rem', textAlign: 'center' }}>
         せいかい: {score.correct}<br />
@@ -315,11 +486,11 @@ export function App() {
           </button>
         )}
       </div>
-    </div>
+    </>
   );
 
-  const renderReview = () => (
-    <div className={`screen ${flashClass}`}>
+  const renderReview = () => wrapScreen(
+    <>
       <div className="display-text" style={{ fontSize: '1.2rem', color: 'var(--lcd-text)' }}>
         にがてリトライ ({reviewQueue.length}のこり)
       </div>
@@ -348,13 +519,13 @@ export function App() {
       >
         [ ふくしゅうを おわる ]
       </button>
-    </div>
+    </>
   );
 
   const isInputActive = gameState === 'PLAYING' || gameState === 'REVIEW';
 
   return (
-    <div className="device-container">
+    <div className={`device-container ${isBSide ? 'b-side' : ''}`}>
       {gameState === 'SELECT_MODE' && renderSelectMode()}
       {gameState === 'PLAYING' && renderPlaying()}
       {gameState === 'RESULT' && renderResult()}
@@ -373,8 +544,18 @@ export function App() {
         ))}
         <button 
           className="key key-clear" 
-          onClick={handleClear}
-          disabled={!isInputActive}
+          onPointerDown={(e) => {
+            e.preventDefault();
+            startHold();
+          }}
+          onPointerUp={(e) => {
+            e.preventDefault();
+            cancelHold();
+          }}
+          onPointerLeave={(e) => {
+            e.preventDefault();
+            cancelHold();
+          }}
         >
           C
         </button>
